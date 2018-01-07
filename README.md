@@ -12,8 +12,10 @@ This is a library for cryptocurrencies in pure PHP.
 # Needs attention
 * DER signature is incorrect and not accepted as a valid scriptSig.
 * Although segwit address generation works, it has still not been implemented in a transaction
+* Get unspent transactions for other networks
+* Setup verifying functions (validators for signature and addresses)
 
 # Future development
 * Lightning network support
-* Bip 38 support
-* Support more currencies
+* Bip 39 support
+* More currencies
