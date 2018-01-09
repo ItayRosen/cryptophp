@@ -8,6 +8,8 @@ class Address extends Secp256k1
     public $segwit = false;
     public $currency = 'btc';
     public $compressed = false;
+	public $bip39 = false;
+	public $salt = '';
     
     public function base58Decode($hex)
     {
@@ -168,7 +170,7 @@ class Address extends Secp256k1
     
 	//create a private key (from a given input or random bytes)
     private function privateKey($input = null)
-    {
+    {	
         if ($input == null) {
             if (function_exists('random_bytes')) {
                 $privateKey = bin2hex(random_bytes(32));
@@ -184,22 +186,94 @@ class Address extends Secp256k1
         
         return $privateKey;
     }
+	
+	//generate vanity address
+	public function vanity($string)
+	{
+		while (true)
+		{
+			$instance = $this -> generate();
+			$json = json_decode($instance);
+			$address = $json -> publicAddress;
+			if (substr($address,1,strlen($string)) == $string) {
+				return $instance;
+			}
+		}
+	}
+
+	//Mnemonic phrase to seed
+	private function PBKDF2($phrase)
+	{
+		$salt = 'mnemonic'.$this -> salt;
+		$seed = hash_pbkdf2("sha512", $phrase, $salt, 2048, 512);
+		return $seed;
+	}
+	
+	//hex to numeric binary
+	private function hex2decbin($hex)
+	{
+		$binary = '';
+		for ( $i = 0; $i < strlen($hex); $i++ ){
+			$conv = base_convert($hex[$i], 16, 2);
+			$binary .= str_pad($conv, 4, '0', STR_PAD_LEFT);
+		}
+		return $binary;
+	}
+		
+	//generate mnemonic words
+	public function mnemonic($phrase, $words_count = 12)
+	{
+		//if phrase is set, we can send it back
+		if ($phrase != null) return $phrase;
+		
+		$checksum_conversion = array(12 => 4, 15 => 5, 18 => 6, 21 => 7, 24 => 8); // words to checksum_length
+		$checksum_length = $checksum_conversion[$words_count]; //get checksum length
+		$bytes = $checksum_length * 4; //calculate bytes
+		$words = file('../src/bip39.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES); //load word list
+		
+		//generate binary sequence
+		while (true)
+		{
+			$entropy = (function_exists('random_bytes')) ? bin2hex(random_bytes($bytes)) : bin2hex(openssl_random_pseudo_bytes($bytes));
+			$checksum = substr( $this -> hex2decbin( hash('sha256', hex2bin($entropy) ) ) ,0,$checksum_length );
+			$sequence = $this -> hex2decbin($entropy);
+			$binary = $sequence.$checksum;
+			$chunks =  str_split($binary,11);
+			if (strlen($chunks[count($chunks)-1]) == 11) break;
+		}
+		
+		//replace binary with words 
+		foreach ($chunks as $chunk) 
+		{
+			$mnemonic[] = $words[bindec($chunk)];
+		}
+		$phrase = implode(' ',$mnemonic);
+		
+		return $phrase;
+	}
     
 	//generate a new address
     public function generate($input = null)
     {
         if ($this->segwit)
             $this->compressed = true;
-        $privateKey    = $this->privateKey($input);
-        $wif           = $this->key2wif($privateKey);
-        $publicKey     = $this->private2public($privateKey);
-        $publicAddress = $this->key2address($publicKey);
+		
+		//check for bip39
+		if ($this -> bip39)
+		{
+			$json["seed"]    = $this->mnemonic($input, 12); //number of words for the seed
+			$privateKey    = substr($this->PBKDF2($json["seed"]),0,64); //64 first characters for private key
+		}
+		else
+		{
+			$privateKey    = $this->privateKey($input);
+		}
+		
+        $json["wif"]           = $this->key2wif($privateKey); //wif
+        $publicKey     = $this->private2public($privateKey); //public key
+        $json["publicAddress"] = $this->key2address($publicKey); //public address
         
-        $json = json_encode(array(
-            "privateKey" => $privateKey,
-            "wif" => $wif,
-            "publicAddress" => $publicAddress
-        ));
+        $json = json_encode($json);
         return $json;
     }
     

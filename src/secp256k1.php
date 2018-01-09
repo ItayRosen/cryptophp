@@ -79,7 +79,7 @@ class Secp256k1
         return $acc;
     }
     
-    private function bchexdec($hex)
+    public function bchexdec($hex)
     {
         $dec = 0;
         $len = strlen($hex);
