@@ -6,8 +6,6 @@ Optional variables: currency (btc by default), segwit (false by default), testne
 Syntax: generate(input); input can be either null for random private key, an existing private key (to generate wif / public address from it) or a brainwallet string
 */
 
-/*
-
 //generate a bitcoin address
 $address = new CryptoPHP\transaction;
 echo $address -> generate();
@@ -35,8 +33,6 @@ echo $address -> generate();
 //generate a vanity address
 $address = new CryptoPHP\transaction;
 echo $address -> vanity('hi');
-
-*/
 
 //generate a bip39 seed
 $address = new CryptoPHP\transaction;
