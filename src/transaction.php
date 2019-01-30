@@ -127,12 +127,14 @@ class Transaction extends Address\Address
     public function sign($hash, $privateKey)
     {
         //verify hash
+	/*
         if (!ctype_alnum($hash)) {
             die(json_encode(array(
                 "code" => 403,
                 "error" => 'Invalid hash type when signing'
             )));
         }
+	*/
         //create hex (key)
         $hex = '30740201010420' . $privateKey . 'a00706052b8104000aa144034200' . $this->private2public($privateKey);
         
